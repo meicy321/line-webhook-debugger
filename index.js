@@ -4,14 +4,14 @@ const bodyParser = require('body-parser');
 const app = express();
 app.use(bodyParser.json());
 
-// 讓根目錄也可以正常顯示
+// 根目錄 GET，測試用
 app.get('/', (req, res) => {
   res.send('LINE Webhook is running!');
 });
 
-app.post('/', (req, res) => {
+// ✅ 這是 webhook 接收入口
+app.post('/webhook', (req, res) => {
   console.log("🚀 Webhook 被觸發！");
-  
   const events = req.body.events;
   if (!events || !Array.isArray(events)) {
     console.log("⚠️ 沒有有效的事件資料！");
@@ -19,31 +19,21 @@ app.post('/', (req, res) => {
   }
 
   events.forEach(event => {
-    console.log("📥 收到事件：", JSON.stringify(event, null, 2));
-
-    if (event.source) {
-      if (event.source.type === 'user') {
-        console.log("✅ userId:", event.source.userId);
-      } else if (event.source.type === 'group') {
-        console.log("👥 groupId:", event.source.groupId);
-      } else if (event.source.type === 'room') {
-        console.log("🧑‍🤝‍🧑 roomId:", event.source.roomId);
-      }
-    } else {
-      console.log("❌ 沒有來源資料");
-    }
-
-    if (event.type === 'message' && event.message && event.message.text) {
-      console.log("💬 使用者傳來的訊息：", event.message.text);
+    const source = event.source || {};
+    if (source.type === 'user') {
+      console.log("✅ 來自個人 userId:", source.userId);
+    } else if (source.type === 'group') {
+      console.log("✅ 來自群組 groupId:", source.groupId, "userId:", source.userId);
+    } else if (source.type === 'room') {
+      console.log("✅ 來自聊天室 roomId:", source.roomId, "userId:", source.userId);
     }
   });
 
-  // LINE 需要你一定要回應 200 OK，不然會一直重送
-  res.status(200).send('OK');
+  res.status(200).end();
 });
 
 // 啟動伺服器
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`🌐 Server is running on port ${port}`);
+  console.log(`🚀 Server running on port ${port}`);
 });
